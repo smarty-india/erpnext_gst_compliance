@@ -56,6 +56,7 @@ class EInvoice(Document):
 		self.set_seller_details()
 		self.set_buyer_details()
 		self.set_shipping_details()
+		self.set_dispatch_details()
 		self.set_item_details()
 		self.set_value_details()
 		self.set_payment_details()
@@ -160,6 +161,18 @@ class EInvoice(Document):
 				self.shipping_state_code = 96
 				self.shipping_pincode = 999999
 				self.shipping_place_of_supply = 96
+
+	def set_dispatch_details(self):
+		dispatch_address_name = self.sales_invoice.dispatch_address_name
+		if dispatch_address_name:
+			dispatch_address = frappe.get_all('Address', {'name': dispatch_address_name}, ['*'])[0]
+
+			self.dispatch_legal_name = dispatch_address.address_title
+			self.dispatch_location = dispatch_address.city
+			self.dispatch_pincode = dispatch_address.pincode
+			self.dispatch_address_line_1 = dispatch_address.address_line1
+			self.dispatch_address_line_2 = dispatch_address.address_line2
+			self.dispatch_state_code = dispatch_address.gst_state_number
 
 	def set_item_details(self):
 		sales_invoice_item_names = [d.name for d in self.sales_invoice.items]
@@ -382,7 +395,7 @@ class EInvoice(Document):
 			}
 		}
 
-		einvoice_json.update(self.get_party_address_json())
+		einvoice_json.update(self.get_address_json())
 		einvoice_json.update(self.get_item_list_json())
 		einvoice_json.update(self.get_invoice_value_json())
 		einvoice_json.update(self.get_payment_details_json())
@@ -392,74 +405,65 @@ class EInvoice(Document):
 
 		return einvoice_json
 
-	def get_party_address_json(self):
+	def get_address_json(self):
 		addresses = {}
 		seller_address = {
-			"SellerDtls": {
-				"Gstin": self.seller_gstin,
-				"LglNm": self.seller_legal_name,
-				"TrdNm": self.seller_trade_name,
-				"Addr1": self.seller_address_line_1,
-				"Loc": self.seller_location,
-				"Pin": cint(self.seller_pincode),
-				"Stcd": self.seller_state_code,
-				"Ph": self.seller_phone,
-				"Em": self.seller_email
-			},
+			"Gstin": self.seller_gstin,
+			"LglNm": self.seller_legal_name,
+			"TrdNm": self.seller_trade_name,
+			"Addr1": self.seller_address_line_1,
+			"Loc": self.seller_location,
+			"Pin": cint(self.seller_pincode),
+			"Stcd": self.seller_state_code,
+			"Ph": self.seller_phone,
+			"Em": self.seller_email
 		}
 		if self.seller_address_line_2:
 			seller_address.update({"Addr2": self.seller_address_line_2})
-		addresses.update(seller_address)
+		addresses.update({ "SellerDtls": seller_address })
 
 		buyer_address = {
-			"BuyerDtls": {
-				"Gstin": self.buyer_gstin,
-				"LglNm": self.buyer_legal_name,
-				"TrdNm": self.buyer_trade_name,
-				"Pos": self.buyer_place_of_supply,
-				"Addr1": self.buyer_address_line_1,
-				"Loc": self.buyer_location,
-				"Pin": cint(self.buyer_pincode),
-				"Stcd": self.buyer_state_code,
-				"Ph": self.buyer_phone,
-				"Em": self.buyer_email
-			}
+			"Gstin": self.buyer_gstin,
+			"LglNm": self.buyer_legal_name,
+			"TrdNm": self.buyer_trade_name,
+			"Pos": self.buyer_place_of_supply,
+			"Addr1": self.buyer_address_line_1,
+			"Loc": self.buyer_location,
+			"Pin": cint(self.buyer_pincode),
+			"Stcd": self.buyer_state_code,
+			"Ph": self.buyer_phone,
+			"Em": self.buyer_email
 		}
 		if self.buyer_address_line_2:
 			buyer_address.update({"Addr2": self.buyer_address_line_2})
-		addresses.update(buyer_address)
+		addresses.update({ "BuyerDtls": buyer_address })
 
 		if self.dispatch_legal_name:
 			dispatch_address = {
-				"DispDtls": {
-					"Nm": self.dispatch_legal_name,
-					"Addr1": self.dispatch_address_line_1,
-					"Loc": self.dispatch_location,
-					"Pin": cint(self.dispatch_pincode),
-					"Stcd": self.dispatch_state_code
-				}
+				"Nm": self.dispatch_legal_name,
+				"Addr1": self.dispatch_address_line_1,
+				"Loc": self.dispatch_location,
+				"Pin": cint(self.dispatch_pincode),
+				"Stcd": self.dispatch_state_code
 			}
 			if self.dispatch_address_line_2:
 				dispatch_address.update({"Addr2": self.dispatch_address_line_2})
-			addresses.update(dispatch_address)
-
+			addresses.update({ "DispDtls": dispatch_address })
 
 		if self.shipping_legal_name:
 			shipping_address = {
-				"ShipDtls": {
-					"Gstin": self.shipping_gstin,
-					"LglNm": self.shipping_legal_name,
-					"TrdNm": self.shipping_trade_name,
-					"Pos": self.shipping_place_of_supply,
-					"Addr1": self.shipping_address_line_1,
-					"Loc": self.shipping_location,
-					"Pin": cint(self.shipping_pincode),
-					"Stcd": self.shipping_state_code
-				}
+				"Gstin": self.shipping_gstin,
+				"LglNm": self.shipping_legal_name,
+				"TrdNm": self.shipping_trade_name,
+				"Pos": self.shipping_place_of_supply,
+				"Addr1": self.shipping_address_line_1,
+				"Loc": self.shipping_location,
+				"Pin": cint(self.shipping_pincode),
+				"Stcd": self.shipping_state_code
 			}
 			if self.shipping_address_line_2:
 				shipping_address.update({"Addr2": self.shipping_address_line_2})
-			addresses.update(shipping_address)
+			addresses.update({ "ShipDtls": shipping_address })
 
 		return addresses
 
